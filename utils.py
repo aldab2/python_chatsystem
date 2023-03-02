@@ -1,5 +1,8 @@
 host = "localhost"
-port = 8081
+port = 8082
+
+
+ALIVE_INTERVAL= 30
 KEYWORD_CONNECT = 'connect'
 KEYWORD_QUIT = 'quit'
 KEYWORD_ALIVE = 'alive'

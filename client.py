@@ -2,33 +2,37 @@ import socket
 import threading
 import client_object as c
 import utils
-closed = False
+import time
 
+
+closed = False
+alive_interval = -1
 # Listening to Server and Sending Nickname
 def receive():
     while True:
         try:
             # Receive Message From Server
-            # If 'NICK' Send Nickname
             message = client.recv(1024).decode()
-            if not message: break
-            if message == 'ID':
-                connect_command= utils.compose_command(utils.DEST_SERVER,client_id,utils.KEYWORD_CONNECT)
-                client.send(connect_command.encode())
-            elif message == '#QUIT':
-                print("XXX closing")
+            if not message:
                 global closed
                 closed = True
-                quit()
+                break
+            if message.startswith('@INIT'):
+                connect_command= utils.compose_command(utils.DEST_SERVER,client_id,utils.KEYWORD_CONNECT)
+                global alive_interval
+                alive_interval  = int(message.split(',')[1])
+                print("Alive interval is {}".format(alive_interval))
+                client.send(connect_command.encode())
+                
+            
 
             else:
                 print(message)
                 continue
-                #print("xxx")
                 
         except:
             # Close Connection When Error
-            #print("An error occured!")
+            print("An error occured!")
             client.close()
             break
 
@@ -52,8 +56,16 @@ def write():
     
         
         client.send(command.encode())
+
+    exit()
         
-        
+def sleep_for(seconds : int):
+    slept_seconds = 0
+    while slept_seconds < seconds and not closed :
+        time.sleep(1)
+        slept_seconds += 1
+    
+
 
 
 def quit():
@@ -62,7 +74,18 @@ def list():
     return utils.compose_command(client_id,utils.DEST_SERVER,utils.KEYWORD_LIST)
 def message(dest:str,client_message:str):
     return utils.compose_command(client_id,dest,client_message)
+
 def alive():
+    while True and not closed:
+        if alive_interval > 0:
+            sleep_for(alive_interval)
+            if not closed:
+                command = utils.compose_command(client_id,utils.DEST_SERVER,utils.KEYWORD_ALIVE)
+                print("Sending alive")
+                client.send(command.encode())
+
+        
+
     return utils.compose_command(client_id,utils.DEST_SERVER,utils.KEYWORD_ALIVE)
 
 def parse_client_input(client_input: str):
@@ -97,6 +120,11 @@ receive_thread.start()
 
 write_thread = threading.Thread(target=write)
 write_thread.start()
+
+alive_thread = threading.Thread(target=alive)
+alive_thread.start()
+
+
 
 
 
